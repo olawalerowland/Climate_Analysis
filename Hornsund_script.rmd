@@ -1,0 +1,283 @@
+```{r}
+# Setting Environments and Reading the data
+setwd("C:/dir")
+gsod<-read.table("010030-99999-1985-2021.txt",header=TRUE)
+```
+
+```{r}
+#Declaring Variables/Paramters
+Tdies <- gsod$TT    # gsod$TT
+Tmax  <- gsod$TMAX  # gsod$TX
+Tmin  <- gsod$TMIN  # gsod$TN
+Prec  <- gsod$PR    # gsod$PRCP
+DAT<-gsod$DAT
+dats<-as.Date(DAT)
+yyyy<-as.numeric(substring(dats,1,4))
+mm<-as.numeric(substring(dats,6,7))
+dd<-as.numeric(substring(dats,9,10))
+```
+
+```{r}
+# Finding the start year and number of years in the data
+ystart<-yyyy[1]
+yend<-yyyy[length(yyyy)]
+numyear<-yend-ystart+1
+
+# Calculating basic statistics and ploting timeseries
+summary(Tdies,na.rm=TRUE)
+boxplot(Tdies)
+plot(dats,Tdies,typ="l",main="Daily average temperature, HORNSUND,  1985-2021")
+boxplot(Tdies)
+summary(Tmin,na.rm=TRUE)
+boxplot(Tmin)
+plot(dats,Tmin,typ="l",main="Daily minimum temperature, HORNSUND,  1985-2021")
+summary(Tmax,na.rm=TRUE)
+boxplot(Tmax)
+plot(dats,Tmax,typ="l",main="Daily maximum temperature, HORNSUND,  1985-2021", col="magenta")
+summary(Prec,na.rm=TRUE)
+boxplot(Prec)
+plot(dats,Prec,typ="l",main="Daily precipitation sum, HORNSUND,  1985-2021", col="red")
+
+# Displaying histogram and automatically fitted probability density function
+hist(Tdies,breaks=20,main="Tdies",col="red")
+plot(density(Tdies))
+```
+
+```{r}
+# summer and winter temperature distribution
+# Summer: June,July, and August
+TJJA<-0
+for (im in 6:8) {
+for (i in 1:length(yyyy)) {
+if (mm[i]==im) TJJA<-c(TJJA,Tdies[i])
+}}
+TJJA<-TJJA[-1]
+# mean
+mean(TJJA,na.rm=TRUE)
+# standard deviation
+sd(TJJA,na.rm=TRUE)
+#Display histgram for Summer
+hist(TJJA,breaks=15,main="Temperature JJA",col="yellow")
+# 4.2 December,January,February
+```
+
+```{r}
+# Winter: December, January, and February
+TDJF<-0
+for (im in c(1,2,12)) {
+for (i in 1:length(yyyy)) {
+if (mm[i]==im) TDJF<-c(TDJF,Tdies[i])
+}}
+TDJF<-TDJF[-1]
+# mean
+mean(TDJF,na.rm=TRUE)
+# standard deviation
+sd(TDJF,na.rm=TRUE)
+#Display histgram for Winter
+hist(TDJF,breaks=15,main="Temperature DJF",col="lightblue")
+```
+
+```{r}
+#Calculate statistcs of the precipitation series: mean, median, 25 i 75 quartile, min, max
+# Display histogram and automatically fitted probability density function for precipitation
+hist(Prec,breaks=50,main="Precipitation",col="red")
+plot(density(Prec,na.rm=TRUE))
+
+#summer and winter precipitation distribution
+# June,July,August
+PJJA<-0
+for (im in 6:8) {
+for (i in 1:length(yyyy)) {
+if (mm[i]==im) PJJA<-c(PJJA,Prec[i])
+}}
+PJJA<-PJJA[-1]
+PJJA<-PJJA[-1]
+# mean
+mean(PJJA,na.rm=TRUE)*30
+# standard deviation
+sd(PJJA,na.rm=TRUE)
+# Display histgram for Summer
+hist(PJJA,breaks=45,main="Precipitation JJA",col="magenta")
+```
+
+```{r}
+# December,January,February
+PDJF<-0
+for (im in c(1,2,12)) {
+for (i in 1:length(yyyy)) {
+if (mm[i]==im) PDJF<-c(PDJF,Prec[i])
+}}
+PDJF<-PDJF[-1]
+# mean
+mean(PDJF,na.rm=TRUE)*30
+# standard deviation
+sd(PDJF,na.rm=TRUE)
+# Display histgram for Winter
+hist(PDJF,breaks=45,main="Precipitation DJF",col="grey")
+```
+
+```{r}
+# Calculate monthly mean averages for the temperature (if number of available measurements > 15)
+aver<-matrix(0,numyear+1,12+1)
+for (yy in ystart:yend) {
+iy<-yy-ystart+1.
+for (im in 1:12) {
+licz <- 0.
+sum  <- 0.
+for (i in 1:length(yyyy)) {
+if (yyyy[i]==yy & mm[i]==im) {sum=sum+Tdies[i];licz=licz+1}
+}
+aver[iy,im]<-sum/licz
+}
+}
+```
+
+```{r}
+# Calculate annual averages + multi-annual monthly means
+for (i in 1:numyear) aver[i,13]<-mean(aver[i,1:12])
+for (i in 1:12) aver[numyear+1,i]<-mean(aver[1:numyear,i],na.rm=TRUE)
+```
+
+```{r}
+# Calculate multiannual mean 
+allyear<-mean(Tdies,na.rm=TRUE)
+```
+
+```{r}
+# Calculate mean annual temperature anomalies  
+yearav<-aver[1:numyear,13]
+anomaly<-yearav-allyear
+```
+
+```{r}
+#Plot
+time<-ystart:yend
+plot(time,yearav,type="o",main="Mean annual temperature",col="red");abline(h=0.0,col="black",lwd=1)
+plot(time,anomaly,type="o",main="Mean annual temperature anomalies",col="red");abline(h=0.0,col="black",lwd=1)
+```
+
+```{r}
+#Calculate monthly precipitation (sum) 
+sumP<-matrix(0,numyear+1,12+1)
+for (yy in ystart:yend) {
+iy<-yy-ystart+1
+for (im in 1:12) {
+licz<-0
+sum<-0
+for (i in 1:length(yyyy)) {
+if (yyyy[i]==yy & mm[i]==im) {sum=sum+Prec[i];licz=licz+1}
+}
+ifelse(licz==0,sumP[iy,im]<-NA,sumP[iy,im]<-sum)
+}
+}
+```
+
+```{r}
+#Calculate monthly and annual precipitation sum
+for (i in 1:numyear) sumP[i,13]<-sum(sumP[i,1:12])
+for (i in 1:12) sumP[numyear+1,i]<-mean(sumP[1:numyear,i],na.rm=TRUE)
+#Calculate average multi-annual sum and anomalies 
+allyearP<-mean(sumP[1:numyear,13],na.rm=TRUE)
+yearsumP<-sumP[1:numyear,13]
+anomalyP<-yearsumP-allyearP
+```
+
+```{r}
+#Plot
+time<-ystart:yend
+plot(time,yearsumP,type="h",main="Precipitation sum",col="lightblue",lwd=10);abline(h=0.0,col="black",lwd=1)
+plot(time,anomalyP,type="h",main="Precipitation anomaly (annual sum)",col="lightblue",lwd=10);abline(h=0.0,col="black",lwd=1)
+```
+
+```{r}
+#Climate type
+Tmonthly<-aver[numyear+1,1:12]
+Pmonthly<-sumP[numyear+1,1:12]
+x<-1:12
+plot(x,Tmonthly,ylim=c(min(Tmonthly),max(Tmonthly)),axes=FALSE,main="Climatograph",col="black",type="n")
+axis(1,at=1:12,lab=c("I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"))
+axis(2,at=floor(min(Tmonthly)):ceiling(max(Tmonthly)))
+par(new=TRUE)
+plot(x, Pmonthly,type="h",col="lightblue",ann=FALSE,xaxt="n",yaxt="n",xlab="",ylab="",lwd=20)
+axis(4)
+mtext("Precipitation",side=4)
+par(new=TRUE)
+plot(x,Tmonthly,ylim=c(min(Tmonthly),max(Tmonthly)),axes=FALSE,lwd=2,col="black",type="o")
+```
+
+```{r}
+#Calculate number of hor days (Tmax>10oC)
+ldayTmax<-(1:numyear)*0
+for (yy in ystart:yend) {
+iy<-yy-ystart+1
+sum<-0
+licz<-0
+for (i in 1:length(yyyy)) {
+if(is.na(Tmax[i])==FALSE){
+if (yyyy[i]==yy & Tmax[i]>=10) {licz=licz+1} #temp changed to 10
+}
+}
+ifelse(licz==0,ldayTmax[iy]<-NA,ldayTmax[iy]<-licz) 
+}
+anomalylmax<-ldayTmax-mean(ldayTmax,na.rm=TRUE)
+```
+
+```{r}
+#Plot
+time<-ystart:yend
+plot(time,ldayTmax,type="o",main="Number of hot days ",col="red")
+plot(time,anomalylmax,type="o",main="Number of hot days - anomaly",col="red");abline(h=0.0,col="black",lwd=1)
+```
+
+```{r}
+#Calculate number of cold days (Tmin<-10oC)
+ldayTmin<-(1:numyear)*0
+for (yy in ystart:yend) {
+iy<-yy-ystart+1
+sum<-0
+licz<-0
+for (i in 1:length(yyyy)) {
+if(is.na(Tmin[i])==FALSE){
+if (yyyy[i]==yy & Tmin[i]<=-10) {licz=licz+1}
+}
+}
+ifelse(licz==0,ldayTmin[iy]<-NA,ldayTmin[iy]<-licz) 
+}
+anomalylmin<-ldayTmin-mean(ldayTmin,na.rm=TRUE)
+```
+
+```{r}
+#Plot
+time<-ystart:yend
+plot(time,ldayTmin,type="o",main="Number of cold days ",col="red")
+plot(time,anomalylmin,type="o",main="Number of cold days - anomaly",col="red");abline(h=0.0,col="black",lwd=1)
+```
+
+```{r}
+#Number of days with precipitation and with prec. exceeding > 25 mm
+ldayP<-(1:numyear)*0
+ldayPhigh<-(1:numyear)*0
+for (yy in ystart:yend) {
+iy<-yy-ystart+1
+liczP<-0
+liczPhigh<-0
+for (i in 1:length(yyyy)) {
+if(is.na(Prec[i])==FALSE)
+{
+if (yyyy[i]==yy & Prec[i]>0) liczP=liczP+1
+if (yyyy[i]==yy & Prec[i]>=25) liczPhigh=liczPhigh+1
+}
+}
+ifelse(liczP==0,ldayP[iy]<-NA,ldayP[iy]<-liczP)
+ifelse(liczPhigh==0,ldayPhigh[iy]<-NA,ldayPhigh[iy]<-liczPhigh)
+}
+anomalylP<-ldayP-mean(ldayP,na.rm=TRUE)
+anomalyPhigh<-ldayPhigh-mean(ldayPhigh,na.rm=TRUE)
+```
+
+```{r}
+#Plots
+time<-ystart:yend
+plot(time,ldayP,type="o",main="Number of days with precipitation",col="green"); lines(time,ldayPhigh,type="o",main="Number of days with precipitation > 25 mm ",col="blue")
+plot(time,anomalyP,type="o",main="Number of days with precipitation - anomaly",col="green");lines(time,anomalyPhigh,type="o",main="Number of days with precipitation > 25 mm - anomaly",col="blue");abline(h=0.0,col="black",lwd=1)
+```
